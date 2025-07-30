@@ -10,14 +10,18 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "../ui/carousel";
+
 interface ProductImageGalleryProps {
   images: string[];
   productName: string;
 }
+
 export function ProductImageGallery({
   images,
   productName,
 }: ProductImageGalleryProps) {
+  const [mainImage, setMainImage] = useState(images?.[0] ?? "");
+
   if (!images || images.length === 0) {
     return (
       <Card className="aspect-square w-full flex items-center justify-center bg-secondary">
@@ -25,10 +29,9 @@ export function ProductImageGallery({
       </Card>
     );
   }
-  const [mainImage, setMainImage] = useState(images[0]);
+
   return (
     <div className="flex flex-col gap-4">
-      {}
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="aspect-square relative w-full">
@@ -38,12 +41,12 @@ export function ProductImageGallery({
               fill
               sizes="500px"
               className="object-cover transition-opacity duration-300"
-              priority 
+              priority
             />
           </div>
         </CardContent>
       </Card>
-      {}
+
       {images.length > 1 && (
         <Carousel
           opts={{

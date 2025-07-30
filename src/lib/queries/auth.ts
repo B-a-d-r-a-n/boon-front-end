@@ -3,8 +3,10 @@ import { useMutation } from "@tanstack/react-query";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { LoginInput, RegisterInput } from "../validation/auth"; 
+import { LoginInput, RegisterInput } from "../validation/auth";
 import { authService } from "../services/auth";
+import { AxiosError } from "axios";
+
 export const useRegister = () => {
   const router = useRouter();
   return useMutation({
@@ -24,13 +26,14 @@ export const useRegister = () => {
         router.push("/login");
       }
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError<{ message: string }>) => {
       toast.error(
         error.response?.data?.message || "An unknown error occurred."
       );
     },
   });
 };
+
 export const useLogin = () => {
   const router = useRouter();
   return useMutation({

@@ -6,24 +6,29 @@ import { productService } from "@/lib/services/products";
 import { auth } from "@/lib/auth";
 import { userService } from "@/lib/services/user";
 import { ProductGrid } from "@/components/products/ProductsGrid";
+
 interface ProductsPageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
+
 export default async function ProductsPage({
   searchParams,
 }: ProductsPageProps) {
   const resolvedparams = await searchParams;
   const session = await auth();
+
   const [productsResponse, categories, brands, user] = await Promise.all([
     productService.fetchProducts(resolvedparams),
     categoryService.fetchCategories(),
     brandService.fetchBrands(),
     session ? userService.getMyProfileOnServer() : Promise.resolve(null),
   ]);
+
   const { data: products, pagination, priceRange } = productsResponse;
   const wishlistIds = new Set(
     user?.wishlist?.map((product) => product._id.toString()) ?? []
   );
+
   return (
     <>
       <div className="container mx-auto p-4">

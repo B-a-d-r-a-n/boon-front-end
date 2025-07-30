@@ -4,58 +4,56 @@ import {
   useMutation,
   useQueryClient,
   keepPreviousData,
+  UseMutationOptions,
 } from "@tanstack/react-query";
 import { userService } from "../services/user";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { PopulatedUser, User } from "@/types/auth";
 import { userKeys } from "./keys";
+import { AxiosError } from "axios";
+import { Product } from "@/types/product";
+
+interface MutationContext {
+  previousUserData?: PopulatedUser;
+}
+
+type PopulatedCartItem = { product: Product; quantity: number; _id?: string };
+
 export const useUser = () => {
   const { data: session, status } = useSession();
-  const isEnabled = status === "authenticated" && !!session?.accessToken;
+  const queryKey = userKeys.profile(session?.user?.email ?? "");
+  const isEnabled = status === "authenticated" && !!session?.user?.email;
+
   return useQuery({
-    queryKey: userKeys.profile(session?.user?.email!),
+    queryKey,
     queryFn: async () => {
-      if (!session?.accessToken) {
-        return null;
-      }
+      if (!session?.accessToken) return null;
       return userService.getMyProfile(session.accessToken);
     },
     enabled: isEnabled,
-    staleTime: 1000 * 60 * 5, 
+    staleTime: 1000 * 60 * 5,
     placeholderData: keepPreviousData,
   });
 };
-export const useToggleWishlist = () => {
-  const queryClient = useQueryClient();
-  const { data: session } = useSession();
-  return useMutation({
-    mutationFn: (productId: string) => {
-      if (!session?.accessToken) throw new Error("Not authenticated.");
-      return userService.toggleWishlistItem(productId, session.accessToken);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: userKeys.profile(session?.user?.email!),
-      });
-    },
-    onSuccess: () => {
-      toast.success("Wishlist updated!");
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Could not update wishlist."
-      );
-    },
-  });
-};
-const useAuthenticatedMutation = <TVariables, TContext>(
-  mutationFn: (variables: TVariables, token: string) => Promise<any>,
-  options?: any 
+
+const useAuthenticatedMutation = <
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
+>(
+  mutationFn: (variables: TVariables, token: string) => Promise<TData>,
+  options?: Omit<
+    UseMutationOptions<TData, TError, TVariables, TContext>,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  return useMutation({
+
+  return useMutation<TData, TError, TVariables, TContext>({
+    ...options,
     mutationFn: (variables: TVariables) => {
       if (!session?.accessToken) {
         toast.error("You must be logged in to perform this action.");
@@ -63,21 +61,24 @@ const useAuthenticatedMutation = <TVariables, TContext>(
       }
       return mutationFn(variables, session.accessToken);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: userKeys.profile(session?.user?.email!),
-      });
-      options?.onSuccess?.();
-    },
-    onError: (error: any) => {
-      if (error.message !== "Not authenticated") {
-        toast.error(error.response?.data?.message || "An error occurred.");
+    onSuccess: (data, variables, context) => {
+      if (session?.user?.email) {
+        queryClient.invalidateQueries({
+          queryKey: userKeys.profile(session.user.email),
+        });
       }
-      options?.onError?.(error);
+      options?.onSuccess?.(data, variables, context);
     },
-    ...options,
+    onError: (error, variables, context) => {
+      if ((error as Error).message !== "Not authenticated") {
+        const axiosError = error as AxiosError<{ message: string }>;
+        toast.error(axiosError.response?.data?.message || "An error occurred.");
+      }
+      options?.onError?.(error, variables, context);
+    },
   });
 };
+
 export const useAddToCart = () => {
   return useAuthenticatedMutation(userService.addItemToCart, {
     onSuccess: () => {
@@ -85,19 +86,24 @@ export const useAddToCart = () => {
     },
   });
 };
+
 export const useRemoveFromCart = () => {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const queryKey = userKeys.profile(session?.user?.email!);
-  return useMutation({
+
+  return useMutation<void, Error, string, MutationContext>({
     mutationFn: (productId: string) => {
       if (!session?.accessToken) throw new Error("Not authenticated.");
       return userService.removeItemFromCart(productId, session.accessToken);
     },
     onMutate: async (productIdToRemove) => {
+      const queryKey = userKeys.profile(session?.user?.email ?? "");
+      if (!session?.user?.email) return;
+
       await queryClient.cancelQueries({ queryKey });
       const previousUserData =
         queryClient.getQueryData<PopulatedUser>(queryKey);
+
       if (previousUserData) {
         const updatedCart = previousUserData.cart.filter(
           (item) => item.product?._id !== productIdToRemove
@@ -108,23 +114,29 @@ export const useRemoveFromCart = () => {
       return { previousUserData };
     },
     onError: (err, variables, context) => {
+      const queryKey = userKeys.profile(session?.user?.email ?? "");
       if (context?.previousUserData) {
         queryClient.setQueryData(queryKey, context.previousUserData);
       }
       toast.error("Could not remove item. Please try again.");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey });
+      if (session?.user?.email) {
+        queryClient.invalidateQueries({
+          queryKey: userKeys.profile(session.user.email),
+        });
+      }
     },
     onSuccess: () => {
       toast.success("Item removed from cart.");
     },
   });
 };
+
 export const useUpdateCartQuantity = () => {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const queryKey = userKeys.profile(session?.user?.email!);
+
   return useAuthenticatedMutation(userService.updateCartItemQuantity, {
     onMutate: async ({
       productId,
@@ -133,15 +145,21 @@ export const useUpdateCartQuantity = () => {
       productId: string;
       quantity: number;
     }) => {
+      const queryKey = userKeys.profile(session?.user?.email ?? "");
+      if (!session?.user?.email) return;
+
       await queryClient.cancelQueries({ queryKey });
+
       const previousUserData =
         queryClient.getQueryData<PopulatedUser>(queryKey);
+
       if (previousUserData) {
         const updatedCart = previousUserData.cart
-          .map((item) =>
+          .map((item: PopulatedCartItem) =>
             item.product?._id === productId ? { ...item, quantity } : item
           )
-          .filter((item) => item.quantity > 0);
+          .filter((item: PopulatedCartItem) => item.quantity > 0);
+
         queryClient.setQueryData(queryKey, {
           ...previousUserData,
           cart: updatedCart,
@@ -149,25 +167,30 @@ export const useUpdateCartQuantity = () => {
       }
       return { previousUserData };
     },
-    onError: (err: any, variables: any, context: any) => {
-      if (context?.previousUserData) {
-        queryClient.setQueryData(queryKey, context.previousUserData);
+    onError: (error, variables, context) => {
+      const queryKey = userKeys.profile(session?.user?.email ?? "");
+      if ((context as MutationContext)?.previousUserData) {
+        queryClient.setQueryData(
+          queryKey,
+          (context as MutationContext).previousUserData
+        );
       }
       toast.error("Failed to update cart quantity.");
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey });
-    },
   });
 };
+
 export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const queryKey = userKeys.profile(session?.user?.email!);
+
   return useAuthenticatedMutation(userService.updateMyProfile, {
     onSuccess: (updatedUser: User) => {
+      const queryKey = userKeys.profile(session?.user?.email ?? "");
+      if (!session?.user?.email) return;
+
       toast.success("Profile updated!");
-      queryClient.setQueryData(queryKey, updatedUser); 
+      queryClient.setQueryData(queryKey, updatedUser);
     },
   });
 };

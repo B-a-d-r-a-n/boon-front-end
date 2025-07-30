@@ -2,6 +2,7 @@
 import { createServerApi } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+
 export async function toggleWishlistAction(productId: string) {
   const session = await auth();
   if (!session?.user) {
@@ -10,10 +11,11 @@ export async function toggleWishlistAction(productId: string) {
   try {
     const api = await createServerApi();
     await api.post("/users/wishlist", { productId });
-    revalidatePath("/"); 
-    revalidatePath("/products"); 
-    revalidatePath("/wishlist"); 
-    revalidatePath("/(main)", "layout"); 
+    revalidatePath("/");
+    revalidatePath("/products");
+    revalidatePath(`/products/**`);
+    revalidatePath("/wishlist");
+    revalidatePath("/(main)", "layout");
     return { success: true };
   } catch (error: unknown) {
     console.log(error);

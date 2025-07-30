@@ -23,8 +23,8 @@ interface PaymentStepProps {
   onPlaceOrder: () => void;
   isPlacingOrder: boolean;
   onBack: () => void;
-  onPaymentMethodChange: (method: string) => void; 
-  selectedPaymentMethod: string; 
+  onPaymentMethodChange: (method: string) => void;
+  selectedPaymentMethod: string;
 }
 export function PaymentStep({
   onPaymentMethodChange,
@@ -46,7 +46,9 @@ export function PaymentStep({
         <Card>
           <CardHeader>
             <CardTitle>Payment Method</CardTitle>
-            <CardDescription>Select how you'd like to pay.</CardDescription>
+            <CardDescription>
+              Select how you&apos;d like to pay.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <RadioGroup

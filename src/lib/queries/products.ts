@@ -1,6 +1,5 @@
 "use client";
 import {
-  useInfiniteQuery,
   useQuery,
   useMutation,
   useQueryClient,
@@ -10,26 +9,34 @@ import { productService } from "../services/products";
 import { toast } from "sonner";
 import { productKeys } from "./keys";
 import { useSession } from "next-auth/react";
-import { Product, Review } from "@/types/product";
-export const useGetProducts = (filters: Record<string, any>) => {
-  return useQuery({
-    queryKey: productKeys.lists(filters), 
-    queryFn: () => productService.fetchProducts(filters), 
+import { Product, Review, ProductsResponseDTO } from "@/types/product";
+
+type QueryFilter = Record<
+  string,
+  string | number | boolean | string[] | undefined
+>;
+
+export const useGetProducts = (filters: QueryFilter) => {
+  return useQuery<ProductsResponseDTO>({
+    queryKey: productKeys.lists(filters),
+    queryFn: () => productService.fetchProducts(filters),
     placeholderData: keepPreviousData,
-    staleTime: 5 * 1000, 
+    staleTime: 5 * 1000,
   });
 };
-export const useGetProductBySlug = (slug: string, initialData?: any) => {
-  return useQuery({
+
+export const useGetProductBySlug = (slug: string, initialData?: Product) => {
+  return useQuery<Product | null>({
     queryKey: productKeys.details(slug),
     queryFn: () => productService.fetchProductBySlug(slug),
     initialData: initialData,
-    enabled: !!slug, 
+    enabled: !!slug,
   });
 };
+
 export const useCreateReview = (productSlug: string) => {
   const queryClient = useQueryClient();
-  const { data: session } = useSession(); 
+  const { data: session } = useSession();
   return useMutation({
     mutationFn: (data: {
       productId: string;
@@ -45,24 +52,27 @@ export const useCreateReview = (productSlug: string) => {
     onMutate: async ({ reviewData }) => {
       const queryKey = productKeys.details(productSlug);
       await queryClient.cancelQueries({ queryKey });
+
       const previousProductData = queryClient.getQueryData<Product>(queryKey);
+
       if (previousProductData && session?.user) {
         const newReview: Review = {
-          name: session.user.name!,
-          _id: `optimistic-${Date.now()}`, 
+          _id: `optimistic-${Date.now()}`,
+          name: session.user.name ?? "User",
           comment: reviewData.comment,
           rating: reviewData.rating,
           user: {
             _id: session.user.id,
-            name: session.user.name!,
-            avatarUrl: session.user.image!,
+            name: session.user.name ?? "User",
+            avatarUrl: session.user.image ?? "",
           },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        const updatedProductData = {
+
+        const updatedProductData: Product = {
           ...previousProductData,
-          reviews: [newReview, ...previousProductData.reviews], 
+          reviews: [newReview, ...previousProductData.reviews],
           numReviews: previousProductData.numReviews + 1,
         };
         queryClient.setQueryData(queryKey, updatedProductData);

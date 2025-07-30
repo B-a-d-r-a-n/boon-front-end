@@ -52,7 +52,7 @@ export function AuthForm({ variant }: AuthFormProps) {
         });
         if (signInResult?.ok) {
           toast.success("Account created successfully!");
-          router.push("/"); 
+          router.push("/");
           router.refresh();
         } else {
           toast.error(
@@ -61,6 +61,8 @@ export function AuthForm({ variant }: AuthFormProps) {
           router.push("/login");
         }
       } catch (error: unknown) {
+        console.log(error);
+
         toast.error("Registration failed. Please try again.");
       } finally {
         setIsLoading(false);

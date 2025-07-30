@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Address, PopulatedUser } from "@/types/auth";
 import { ShippingStep } from "./ShippingStep";
@@ -7,10 +7,12 @@ import { PaymentStep } from "./PaymentStep";
 import { Skeleton } from "../ui/skeleton";
 import { DeliveryMethod } from "@/types/order";
 import { useCreateOrder } from "@/lib/queries/order";
+
 interface CheckoutViewProps {
   initialUser: PopulatedUser;
   deliveryMethods: DeliveryMethod[];
 }
+
 function CheckoutSkeleton() {
   return (
     <div className="grid md:grid-cols-5 gap-8 items-start">
@@ -24,6 +26,7 @@ function CheckoutSkeleton() {
     </div>
   );
 }
+
 export function CheckoutView({
   initialUser,
   deliveryMethods,
@@ -36,6 +39,7 @@ export function CheckoutView({
     useState<DeliveryMethod | null>(null);
   const { mutate: createOrder, isPending: isCreatingOrder } = useCreateOrder();
   const [paymentMethod, setPaymentMethod] = useState<string>("Stripe");
+
   const validCartItems = useMemo(
     () => initialUser.cart.filter((item) => !!item.product),
     [initialUser.cart]
@@ -48,6 +52,7 @@ export function CheckoutView({
       ),
     [validCartItems]
   );
+
   const handlePlaceOrder = () => {
     if (!confirmedAddress || !confirmedDelivery) {
       toast.error("Please confirm your shipping and delivery details.");
@@ -70,6 +75,7 @@ export function CheckoutView({
     };
     createOrder(orderPayload);
   };
+
   if (step === "shipping") {
     return (
       <ShippingStep
@@ -83,18 +89,17 @@ export function CheckoutView({
       />
     );
   }
+
+  if (step === "payment" && (!confirmedAddress || !confirmedDelivery)) {
+    return <CheckoutSkeleton />;
+  }
+
   if (step === "payment") {
-    if (!confirmedAddress || !confirmedDelivery) {
-      useEffect(() => {
-        setStep("shipping");
-      }, []);
-      return <CheckoutSkeleton />;
-    }
     return (
       <PaymentStep
         items={validCartItems}
-        shippingAddress={confirmedAddress}
-        deliveryMethod={confirmedDelivery}
+        shippingAddress={confirmedAddress!}
+        deliveryMethod={confirmedDelivery!}
         subtotal={subtotal}
         onPlaceOrder={handlePlaceOrder}
         isPlacingOrder={isCreatingOrder}
@@ -104,5 +109,6 @@ export function CheckoutView({
       />
     );
   }
+
   return null;
 }

@@ -12,7 +12,6 @@ import { Skeleton } from "../ui/skeleton";
 import { Card } from "../ui/card";
 import Link from "next/link";
 import { Button } from "../ui/button";
-import { useCreateOrder } from "@/lib/queries/order";
 function CartPageSkeleton() {
   return (
     <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -47,10 +46,16 @@ export function CartView() {
   const { data: user, isLoading, error } = useUser();
   const { mutate: updateQuantity } = useUpdateCartQuantity();
   const { mutate: removeItem } = useRemoveFromCart();
+
+  const handleQuantityChange = (productId: string, newQuantity: number) => {
+    updateQuantity({ productId, quantity: newQuantity });
+  };
+
   const validCartItems = useMemo(
     () => user?.cart?.filter((item) => !!item.product) ?? [],
     [user]
   );
+
   const subtotal = useMemo(
     () =>
       validCartItems.reduce(
@@ -59,12 +64,15 @@ export function CartView() {
       ),
     [validCartItems]
   );
+
   const handleCheckout = () => {
     router.push("/checkout");
   };
+
   if (isLoading) {
     return <CartPageSkeleton />;
   }
+
   if (error) {
     return (
       <p className="text-destructive text-center py-8">
@@ -72,12 +80,13 @@ export function CartView() {
       </p>
     );
   }
+
   if (!user || validCartItems.length === 0) {
     return (
       <Card className="p-8 text-center">
         <h2 className="text-xl font-semibold">Your Cart is Empty</h2>
         <p className="text-muted-foreground mt-2">
-          Time to find something you'll love.
+          Time to find something you&apos;ll love.
         </p>
         <Button asChild className="mt-6">
           <Link href="/products">Start Shopping</Link>
@@ -85,22 +94,18 @@ export function CartView() {
       </Card>
     );
   }
+
   return (
     <div className="grid lg:grid-cols-3 gap-8 items-start">
       <div className="lg:col-span-2">
         <CartItemsDisplay
           items={validCartItems}
-          onQuantityChange={(productId, newQuantity) =>
-            updateQuantity({ productId, quantity: newQuantity })
-          }
+          onQuantityChange={handleQuantityChange}
           onRemoveItem={removeItem}
         />
       </div>
       <div className="lg:col-span-1 sticky top-24">
-        <CartSummary
-          subtotal={subtotal}
-          onCheckout={handleCheckout}
-        />
+        <CartSummary subtotal={subtotal} onCheckout={handleCheckout} />
       </div>
     </div>
   );

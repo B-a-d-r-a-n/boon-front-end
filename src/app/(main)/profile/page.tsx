@@ -5,9 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { auth } from "@/lib/auth";
 import { orderService } from "@/lib/services/order";
 import { reviewService } from "@/lib/services/reviews";
-import { Session } from "inspector/promises";
 import { Settings } from "lucide-react";
-import { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 

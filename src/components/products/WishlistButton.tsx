@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useSession } from "next-auth/react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { Heart, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { toggleWishlistAction } from "@/actions/Wishlist";
 interface WishlistButtonProps {
   productId: string;
-  isWishlisted: boolean; 
+  isWishlisted: boolean;
 }
 export function WishlistButton({
   productId,

@@ -5,6 +5,8 @@ import { orderService } from "../services/order";
 import { orderKeys, userKeys } from "./keys";
 import { useSession } from "next-auth/react";
 import { CreateOrderPayload } from "@/types/order";
+import { AxiosError } from "axios";
+
 export const useGetOrderById = (orderId: string) => {
   const { data: session, status } = useSession();
   const isEnabled = status === "authenticated" && !!orderId;
@@ -17,6 +19,7 @@ export const useGetOrderById = (orderId: string) => {
     enabled: isEnabled,
   });
 };
+
 export const useCreateOrder = () => {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
@@ -33,8 +36,8 @@ export const useCreateOrder = () => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
     },
-    onError: (error: any) => {
-      if (error.message !== "Not authenticated") {
+    onError: (error: AxiosError<{ message: string }>) => {
+      if ((error as Error).message !== "Not authenticated") {
         toast.error(error.response?.data?.message || "Failed to place order.");
       }
     },

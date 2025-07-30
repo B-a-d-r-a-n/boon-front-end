@@ -1,6 +1,7 @@
 import axiosInstance from "@/lib/axios";
 import { PopulatedUser, User } from "@/types/auth";
 import { createServerApi } from "../api";
+
 class UserService {
   async getMyProfileOnServer(): Promise<PopulatedUser | null> {
     try {
@@ -12,17 +13,19 @@ class UserService {
       return null;
     }
   }
+
   async getMyProfile(token: string): Promise<PopulatedUser> {
     const { data } = await axiosInstance.get("/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
     });
     return data.data.user;
   }
-  addItemToCart(
+
+  async addItemToCart(
     { productId, quantity }: { productId: string; quantity: number },
     token: string
-  ) {
-    return axiosInstance.post(
+  ): Promise<void> {
+    await axiosInstance.post(
       "/users/cart",
       { productId, quantity },
       {
@@ -30,11 +33,12 @@ class UserService {
       }
     );
   }
-  updateCartItemQuantity(
+
+  async updateCartItemQuantity(
     { productId, quantity }: { productId: string; quantity: number },
     token: string
-  ) {
-    return axiosInstance.patch(
+  ): Promise<void> {
+    await axiosInstance.patch(
       `/users/cart/${productId}`,
       { quantity },
       {
@@ -42,18 +46,25 @@ class UserService {
       }
     );
   }
-  removeItemFromCart(productId: string, token: string) {
-    return axiosInstance.delete(`/users/cart/${productId}`, {
+
+  async removeItemFromCart(productId: string, token: string): Promise<void> {
+    await axiosInstance.delete(`/users/cart/${productId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
   }
-  updateMyProfile(profileData: Partial<User>, token: string) {
-    return axiosInstance.patch("/users/me", profileData, {
+
+  async updateMyProfile(
+    profileData: Partial<User>,
+    token: string
+  ): Promise<User> {
+    const { data } = await axiosInstance.patch("/users/me", profileData, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    return data;
   }
-  toggleWishlistItem(productId: string, token: string) {
-    return axiosInstance.post(
+
+  async toggleWishlistItem(productId: string, token: string): Promise<void> {
+    await axiosInstance.post(
       "/users/wishlist",
       { productId },
       {
@@ -62,4 +73,5 @@ class UserService {
     );
   }
 }
+
 export const userService = new UserService();
