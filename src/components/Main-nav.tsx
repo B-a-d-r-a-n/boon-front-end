@@ -47,7 +47,7 @@ export default async function MainNav() {
                 <Link href="/login">Login</Link>
               </Button>
               <Button asChild>
-                <Link href="/register">Login</Link>
+                <Link href="/register">Register</Link>
               </Button>
             </>
           )}
