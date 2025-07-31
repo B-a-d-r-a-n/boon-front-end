@@ -48,7 +48,7 @@ Follow these instructions to set up and run the project locally.
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/B-a-d-r-a-n/boon-front-end.git
 cd boon-front-end
 ```
 
