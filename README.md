@@ -1,7 +1,3 @@
-Of course! Here is a comprehensive README file for your project, created by analyzing the provided file structure and code.
-
----
-
 # Boon - A Modern E-commerce Platform
 
 Boon is a full-stack, feature-rich e-commerce web application built with a modern technology stack. It provides a seamless shopping experience with features like user authentication, product browsing, a shopping cart, and a complete checkout process. The project is built using the Next.js App Router, ensuring a highly performant and scalable architecture.
